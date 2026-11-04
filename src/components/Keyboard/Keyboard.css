@@ -1,0 +1,20 @@
+.keyboard-panel { min-width: 0; }
+.keyboard-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.keyboard-heading h2 { margin: 0; font-size: 22px; }
+.pressed-count { color: #b8c5d5; font: 12px monospace; white-space: nowrap; }
+.keyboard-panel p { color: #b8c5d5; font-size: 14px; line-height: 1.7; margin: 10px 0; }
+.keyboard-scroll { overflow-x: auto; padding: 16px 0 0; scrollbar-color: #526174 #111820; }
+.keyboard { display: block; width: 100%; min-width: 748px; overflow: visible; }
+.keyboard-case { fill: #111820; stroke: #465467; }
+.key-surface { fill: #303b49; stroke: #607086; stroke-width: 1; transition: fill 90ms ease, stroke 90ms ease, filter 90ms ease; }
+.keyboard-key { transform-box: fill-box; transform-origin: center; transition: transform 70ms ease; }
+.keyboard-key text { fill: #edf2fa; font-size: 11px; font-family: Arial, 'Noto Sans JP', sans-serif; pointer-events: none; }
+.keyboard-key.pressed { transform: translateY(1px); }
+.keyboard-key.pressed .key-surface { fill: #57e6a0; stroke: #b8ffdb; stroke-width: 2; }
+.glow-enabled .keyboard-key.pressed .key-surface { filter: drop-shadow(0 0 5px #57e6a0); }
+.keyboard-key.pressed text { fill: #062819; font-weight: bold; }
+.home-mark { stroke: #a5b4c7; stroke-width: 1.4; }
+.keyboard-key.pressed .home-mark { stroke: #062819; }
+@media (prefers-reduced-motion: reduce) {
+  .keyboard-key, .key-surface { transition: none; }
+}

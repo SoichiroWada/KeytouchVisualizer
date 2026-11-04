@@ -1,0 +1,5 @@
+.hands-overlay { pointer-events: none; stroke: #c2defb; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.hands-overlay.with-glow { filter: drop-shadow(0 0 2px #8cc7ff55); }
+.hands-overlay .finger.active { stroke: #b8ffdb; stroke-width: 1.9; }
+.finger-crease { stroke-width: 1; opacity: .65; }
+.hand-label { fill: #b8c5d5; stroke: none; font: 8px sans-serif; letter-spacing: 3px; }
