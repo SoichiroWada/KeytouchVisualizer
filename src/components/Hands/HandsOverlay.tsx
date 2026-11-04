@@ -17,10 +17,10 @@ export const HandsOverlay = memo(function HandsOverlay({ keys, pressed, settings
       {(['left', 'right'] as const).map(hand => {
         const pose = resolveHandPose(hand, keys, pressed)
         return (
-          <g key={hand} data-hand={hand} data-pose={pose.numpad ? 'numpad' : 'home'}>
+          <g key={hand} data-hand={hand} data-pose={pose.numpad ? 'numpad' : pose.arrows ? 'arrows' : 'home'}>
             <motion.path className="palm" initial={false} animate={{ d: pose.palm }} transition={{ duration }} />
             {pose.fingers.map(finger => <Finger key={finger.assignment.finger} pose={finger} duration={duration} />)}
-            <text className="hand-label" x={hand === 'left' ? 177 : pose.numpad ? 915 : 463} y="375" textAnchor="middle">{hand === 'left' ? 'LEFT' : 'RIGHT'}</text>
+            <motion.text className="hand-label" initial={false} animate={{ attrX: hand === 'left' ? 177 : pose.numpad ? 915 : pose.arrows ? 800 : 463 }} transition={{ duration }} y="375" textAnchor="middle">{hand === 'left' ? 'LEFT' : 'RIGHT'}</motion.text>
           </g>
         )
       })}

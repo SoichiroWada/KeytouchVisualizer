@@ -46,6 +46,61 @@ describe.each([['JIS', keyboardJP, 109], ['US', keyboardUS, 104]] as const)('%s 
       expect(finger.active).toBe(true)
     }
   })
+
+  it.each([
+    ['ArrowLeft', 'index'], ['ArrowUp', 'middle'], ['ArrowDown', 'middle'], ['ArrowRight', 'ring'],
+  ] as const)('moves the whole right hand to the arrows and touches %s with the %s finger', (code, fingerName) => {
+    const held = new Set([code])
+    const pose = resolveHandPose('right', keys, held)
+    expect(pose.arrows).toBe(true)
+    expect(pose.numpad).toBe(false)
+    for (const finger of pose.fingers) {
+      expect(finger.base.x).toBeGreaterThan(650)
+      expect(finger.base.x).toBeLessThan(900)
+    }
+    const finger = pose.fingers.find(finger => finger.assignment.finger === fingerName)!
+    expect(finger.active).toBe(true)
+    expect(finger.target).toEqual(keyCenter(keys.find(key => key.code === code)!))
+    expect(resolveHandPose('left', keys, held)).toEqual(resolveHandPose('left', keys, new Set()))
+    held.clear()
+    expect(resolveHandPose('right', keys, held).arrows).toBe(false)
+    expect(resolveHandPose('right', keys, held).fingers.find(finger => finger.assignment.finger === 'index')!.code).toBe('KeyJ')
+  })
+
+  it('keeps the arrow pose until all arrows are released and resolves up/down sharing a finger', () => {
+    const held = new Set(['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight'])
+    const pose = () => resolveHandPose('right', keys, held)
+    expect(pose().fingers.filter(finger => finger.active)).toHaveLength(3)
+    expect(pose().fingers.find(finger => finger.assignment.finger === 'middle')!.code).toBe('ArrowDown')
+    held.delete('ArrowDown')
+    expect(pose().fingers.find(finger => finger.assignment.finger === 'middle')!.code).toBe('ArrowUp')
+    held.delete('ArrowLeft')
+    held.delete('ArrowUp')
+    expect(pose().arrows).toBe(true)
+    held.delete('ArrowRight')
+    expect(pose()).toEqual(resolveHandPose('right', keys, new Set()))
+  })
+
+  it('preserves numpad priority and returns to held arrows when the numpad is released', () => {
+    const held = new Set(['ArrowDown', 'Numpad5'])
+    const numpad = resolveHandPose('right', keys, held)
+    expect(numpad.numpad).toBe(true)
+    expect(numpad.arrows).toBe(false)
+    held.delete('Numpad5')
+    const arrows = resolveHandPose('right', keys, held)
+    expect(arrows.arrows).toBe(true)
+    expect(arrows.numpad).toBe(false)
+  })
+
+  it.each(['Insert', 'Delete', 'Home', 'End', 'PageUp', 'PageDown'])('keeps the original home palm and bases for %s', code => {
+    const home = resolveHandPose('right', keys, new Set())
+    const pose = resolveHandPose('right', keys, new Set([code]))
+    expect(pose.arrows).toBe(false)
+    expect(pose.numpad).toBe(false)
+    expect(pose.palm).toBe(home.palm)
+    expect(pose.fingers.map(finger => finger.base)).toEqual(home.fingers.map(finger => finger.base))
+    expect(pose.fingers.find(finger => finger.assignment.finger === 'pinky')!.code).toBe(code)
+  })
 })
 
 it('retains all JIS-specific keys and the original full-size key proportions', () => {

@@ -110,3 +110,46 @@ test('rapid native typing and repeats leave no stuck keys or fingers', async ({ 
   await expect(page.locator('.keyboard-key.pressed')).toHaveCount(0)
   await expect(page.locator('.finger.active')).toHaveCount(0)
 })
+
+for (const layout of ['ja', 'en'] as const) {
+  test(`whole-hand arrow movement, chords and unchanged editing keys on ${layout}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1920, height: 1080 })
+    await page.goto('/')
+    if (layout === 'en') await page.getByRole('radio', { name: '英語 / English' }).check()
+    const right = page.locator('[data-hand="right"]')
+    const palm = right.locator('.palm')
+    const leftPalm = page.locator('[data-hand="left"] .palm')
+    const originalLeft = await leftPalm.getAttribute('d')
+    const originalRight = await palm.getAttribute('d')
+    for (const [code, finger] of [
+      ['ArrowLeft', 'index'], ['ArrowUp', 'middle'], ['ArrowDown', 'middle'], ['ArrowRight', 'ring'],
+    ]) {
+      await page.keyboard.down(code)
+      await expect(right).toHaveAttribute('data-pose', 'arrows')
+      await expect(page.locator(`[data-code="${code}"]`)).toHaveClass(/pressed/)
+      await expect(page.locator(`[data-finger="right-${finger}"]`)).toHaveAttribute('data-target-code', code)
+      await expect.poll(() => palm.evaluate(element => (element as SVGPathElement).getBBox().x)).toBeGreaterThan(650)
+      await expect(leftPalm).toHaveAttribute('d', originalLeft!)
+      await page.keyboard.up(code)
+      await expect(right).toHaveAttribute('data-pose', 'home')
+    }
+    await page.keyboard.down('ArrowLeft')
+    await page.keyboard.down('ArrowUp')
+    await page.keyboard.down('ArrowRight')
+    await expect(page.locator('.keyboard-key.pressed')).toHaveCount(3)
+    await expect(page.locator('.finger.active')).toHaveCount(3)
+    await page.screenshot({ path: `test-results/arrow-chord-${layout}.png`, fullPage: true })
+    await page.keyboard.up('ArrowLeft')
+    await page.keyboard.up('ArrowUp')
+    await expect(right).toHaveAttribute('data-pose', 'arrows')
+    await page.keyboard.up('ArrowRight')
+    await expect(palm).toHaveAttribute('d', originalRight!)
+    for (const code of ['Insert', 'Delete', 'Home', 'End', 'PageUp', 'PageDown']) {
+      await page.keyboard.down(code)
+      await expect(right).toHaveAttribute('data-pose', 'home')
+      await expect(palm).toHaveAttribute('d', originalRight!)
+      await expect(page.locator('[data-finger="right-pinky"]')).toHaveAttribute('data-target-code', code)
+      await page.keyboard.up(code)
+    }
+  })
+}
