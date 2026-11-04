@@ -133,6 +133,34 @@ describe('Vue feature parity and React additions', () => {
     expect(within(screen.getByRole('region', { name: 'keydown' })).getByText('waiting')).toBeInTheDocument()
   })
 
+  it('shows and resets the arrow hand pose without changing the six editing-key poses', () => {
+    const { input } = setup()
+    const right = document.querySelector('[data-hand="right"]')!
+    const left = document.querySelector('[data-hand="left"]')!
+    for (const code of ['ArrowLeft', 'ArrowUp', 'ArrowDown', 'ArrowRight']) {
+      physical('keydown', input, code, code)
+      expect(right).toHaveAttribute('data-pose', 'arrows')
+      expect(left).toHaveAttribute('data-pose', 'home')
+      expect(keyElement(code)).toHaveClass('pressed')
+      physical('keyup', input, code, code)
+      expect(right).toHaveAttribute('data-pose', 'home')
+    }
+    for (const code of ['Insert', 'Delete', 'Home', 'End', 'PageUp', 'PageDown']) {
+      physical('keydown', input, code, code)
+      expect(right).toHaveAttribute('data-pose', 'home')
+      expect(document.querySelector('[data-finger="right-pinky"]')).toHaveAttribute('data-target-code', code)
+      physical('keyup', input, code, code)
+    }
+    physical('keydown', input, 'ArrowDown', 'ArrowDown')
+    fireEvent.click(screen.getByRole('button', { name: /Reset Hands/ }))
+    expect(right).toHaveAttribute('data-pose', 'home')
+    expect(document.querySelectorAll('.pressed, .finger.active')).toHaveLength(0)
+    physical('keyup', input, 'ArrowDown', 'ArrowDown')
+    physical('keydown', input, 'ArrowUp', 'ArrowUp')
+    fireEvent(window, new Event('blur'))
+    expect(right).toHaveAttribute('data-pose', 'home')
+  })
+
   it('resets held keys on input blur, window blur and hidden documents', () => {
     const { input } = setup()
     physical('keydown', input, 'KeyA')
@@ -151,8 +179,8 @@ describe('Vue feature parity and React additions', () => {
   it('handles IME compatibility warnings and composed text without fabricating keypress', () => {
     const { input } = setup()
     physical('keydown', input, 'KeyA', 'Process', 229)
-    expect(screen.getByText('カナ漢字変換をOFFにしてください')).toBeInTheDocument()
-    expect(screen.getByText('Please turn off Kana Kanji Converter')).toBeInTheDocument()
+    expect(screen.getByText('半角英数字モードで入力してください')).toBeInTheDocument()
+    expect(screen.getByText('Please use half-width alphanumeric input.')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: 'keydown' })).getByText('waiting')).toBeInTheDocument()
     fireEvent.compositionStart(input)
     fireEvent.change(input, { target: { value: '日本語' } })
@@ -160,7 +188,7 @@ describe('Vue feature parity and React additions', () => {
     expect(input).toHaveValue('日本語')
     expect(document.querySelectorAll('.pressed')).toHaveLength(0)
     physical('keydown', input, 'ShiftLeft', 'Shift', 16)
-    expect(screen.queryByText('カナ漢字変換をOFFにしてください')).toBeNull()
+    expect(screen.queryByText('半角英数字モードで入力してください')).toBeNull()
   })
 
   it('persists hands, opacity, speed and glow and restores them on remount', async () => {

@@ -30,7 +30,7 @@ export default function App() {
         </div>
         <p id="focus-hint" className="focus-hint"><span className="focus-dot" />入力欄にフォーカスしてタイピング / Focus the text box to inspect events</p>
       </header>
-      {keyboard.imeWarning && <div className="alert" role="status"><div id="alertJ">カナ漢字変換をOFFにしてください</div><div id="alertE">Please turn off Kana Kanji Converter</div></div>}
+      {keyboard.imeWarning && <div className="alert" role="status"><div id="alertJ">半角英数字モードで入力してください</div><div id="alertE">Please use half-width alphanumeric input.</div></div>}
       <div className="tester-layout">
         <div className="keyboard-column">
           <Keyboard keys={settings.layout === 'ja' ? keyboardJP : keyboardUS} pressed={keyboard.pressed} settings={settings} />
