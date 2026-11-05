@@ -74,9 +74,9 @@ Vue版と同様、キーの発光はwindow上の実際の`keydown`/`keyup`を参
 
 既存の`.firebaserc`で確認したProject IDは **`keytouch-visualizer`**。`firebase.json`は`dist/`を公開し、SPA rewriteを適用します。Firebase App Hostingは使用しません。アプリにFirebase SDKや秘密鍵は不要です。
 
-**本番デプロイとGitHubへのpushは所有者の明示的承認後に実行してください。開発作業では実行していません。**
+`master`へのpush後、GitHub Actionsの全CIチェックが成功すると本番へ自動デプロイします。初回のみFirebase用サービスアカウントとGitHub Secretの設定が必要です。[初期設定と公開手順](docs/firebase-deployment.md)を参照してください。
 
-承認後のローカルデプロイ手順:
+Ubuntuから手動で公開する場合:
 
 ```bash
 npm ci
@@ -92,17 +92,19 @@ npx firebase-tools@latest deploy --only hosting --project keytouch-visualizer
 
 ## GitHub Actions
 
-- `ci.yml`: PRおよび主要ブランチへのpushで`npm ci`、ESLint、TypeScript、Vitest、production build。別jobでChromiumのブラウザテストと画面画像を保存
-- `firebase-hosting.yml`: 手動`workflow_dispatch`のみ。本番の自動デプロイは無効。既定ブランチ以外からも実行しません
+- `ci.yml`: PRおよび開発ブランチ等へのpush、または再利用可能Workflowとして実行。`npm ci`、ESLint、TypeScript、Vitest、production buildと、別jobのChromiumブラウザテストを実行します
+- `firebase-hosting.yml`: `master`へのpush、または`master`を選択した手動実行で起動。まず`ci.yml`を呼び出し、**両方のCI jobが成功した場合だけ**Firebase Hostingの`live`チャンネルへ公開します。PRと開発ブランチは本番へ公開しません
 
-所有者の承認後に、GitHub側で次を設定します:
+初回にGitHub側で次を設定します:
 
-1. `production` Environmentを作成し、required reviewersによる承認を設定
-2. Firebase Hosting公開用サービスアカウントのJSONをEnvironment secret **`FIREBASE_SERVICE_ACCOUNT_KEYTOUCH_VISUALIZER`** に保存。JSON自体をリポジトリに置かない
-3. Repository variable **`ENABLE_FIREBASE_PRODUCTION_DEPLOY=true`** を設定
-4. 既定ブランチのWorkflowを手動起動し、`confirm_project`へ`keytouch-visualizer`と入力。Environmentの承認を実施
+1. `keytouch-visualizer`のHosting公開用サービスアカウントを作成
+2. JSON鍵全体をRepository secret **`FIREBASE_SERVICE_ACCOUNT_KEYTOUCH_VISUALIZER`** に登録。既存の`production` Environment secretに同名で登録しても利用できます。JSON鍵をリポジトリやチャットへ貼り付けないでください
+3. `production` Environmentを確認。毎回の承認なしで自動公開する場合、Required reviewersや待機時間は設定しません
+4. Workflowファイルを`master`へpush。GitHub Actionsの`Firebase Hosting`で結果を確認
 
-認証の手順は[Firebase公式GitHub連携ドキュメント](https://firebase.google.com/docs/hosting/github-integration)を参照してください。変数未設定時はdeploy jobをスキップします。push／PRで本番公開されるトリガーはありません。
+以前の`ENABLE_FIREBASE_PRODUCTION_DEPLOY`変数と`confirm_project`入力は不要です。認証設定がない場合は、明示的なエラーで公開を停止します。デプロイ時のビルドは既存の`firebase.json`のpredeployで実行し、CIと同じコミットとlockfileを使用します。Ubuntuの開発サーバーを常時起動しておく必要はありません。
+
+詳細は[このプロジェクトの設定手順](docs/firebase-deployment.md)と[Firebase公式GitHub連携ドキュメント](https://firebase.google.com/docs/hosting/github-integration)を参照してください。
 
 ## 制限・今後の拡張
 

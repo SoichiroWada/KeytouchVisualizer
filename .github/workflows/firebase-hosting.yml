@@ -1,14 +1,9 @@
-name: Firebase Hosting (manual, approval required)
+name: Firebase Hosting
 
-# No push/PR deployment trigger. Enable the repository variable only after
-# owner approval and configure the protected production environment first.
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
-    inputs:
-      confirm_project:
-        description: '本番公開を承認する場合は keytouch-visualizer と入力'
-        type: string
-        required: true
 
 permissions:
   contents: read
@@ -18,22 +13,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validation:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
-    if: ${{ vars.ENABLE_FIREBASE_PRODUCTION_DEPLOY == 'true' && inputs.confirm_project == 'keytouch-visualizer' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    needs: validation
+    if: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
-    environment: production
+    environment:
+      name: production
+      url: https://keytouch-visualizer.web.app
     steps:
+      - name: Check Firebase deployment credential
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEYTOUCH_VISUALIZER }}
+        run: |
+          node <<'NODE'
+          const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+          if (!raw) {
+            console.error('GitHub Secret FIREBASE_SERVICE_ACCOUNT_KEYTOUCH_VISUALIZER is missing. See docs/firebase-deployment.md.');
+            process.exit(1);
+          }
+          let credential;
+          try {
+            credential = JSON.parse(raw);
+          } catch {
+            console.error('The Firebase deployment Secret must contain the complete service-account JSON.');
+            process.exit(1);
+          }
+          if (credential?.type !== 'service_account' || credential?.project_id !== 'keytouch-visualizer' ||
+              typeof credential?.private_key !== 'string' || typeof credential?.client_email !== 'string') {
+            console.error('The Firebase deployment Secret must be a service-account key for project keytouch-visualizer.');
+            process.exit(1);
+          }
+          console.log('Firebase deployment credential configuration verified.');
+          NODE
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      # firebase.json runs npm run build in predeploy, using this exact commit
+      # and lockfile after both validation jobs have passed.
+      - name: Deploy to Firebase Hosting live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEYTOUCH_VISUALIZER }}
           projectId: keytouch-visualizer
