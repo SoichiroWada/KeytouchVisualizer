@@ -43,12 +43,13 @@ PRや`feature/keyboard-hand-animation`へのpushはCIのみを実行します。
 3. この静的サイトの本番Hosting公開に使うロールを付与
    - **Firebase Hosting Admin**: `roles/firebasehosting.admin`
    - **API Keys Viewer**: `roles/serviceusage.apiKeysViewer`
+   - **Service Usage Viewer**: `roles/serviceusage.serviceUsageViewer`（CLIがHosting APIの有効状態を確認するため）
 4. 作成したサービスアカウントを開く
 5. 「キー」→「鍵を追加」→「新しい鍵を作成」→ **JSON** を選択し、ダウンロード
 
 PRのプレビューURLをFirebase Authenticationに登録する構成ではないため、この構成ではAuth管理用のロールを付与しません。Cloud Run / Functionsへのrewriteもありません。
 
-ロールの根拠は[Firebase Hosting Action公式のサービスアカウント手順](https://github.com/FirebaseExtended/action-hosting-deploy/blob/main/docs/service-account.md)を参照してください。JSON鍵に含まれる`project_id`が`keytouch-visualizer`であることを確認してください。
+ロールの根拠は[Firebase Hosting Action公式のサービスアカウント手順](https://github.com/FirebaseExtended/action-hosting-deploy/blob/main/docs/service-account.md)と[Service Usageの公式ロール一覧](https://docs.cloud.google.com/iam/docs/roles-permissions/serviceusage)を参照してください。`API Keys Viewer`には`serviceusage.services.get`が含まれないため、`Service Usage Viewer`も必要です。JSON鍵に含まれる`project_id`が`keytouch-visualizer`であることを確認してください。
 
 JSON鍵はプロジェクトディレクトリの外で管理してください。Gitへ追加したり、チャットへ貼り付けたりしないでください。
 
@@ -115,6 +116,7 @@ git push origin master
 | complete service-account JSON | JSONファイルの全文を登録したか |
 | key for project keytouch-visualizer | JSONのproject_idとサービスアカウントの所属プロジェクト |
 | Permission denied / HTTP 403 | サービスアカウントのロール、プロジェクトのアクセス権、鍵の有効性 |
+| serviceusage.services.get / AUTH_PERMISSION_DENIED | Google CloudのプロジェクトIAMで公開用サービスアカウントにService Usage Viewerを追加。反映に数分待ってからRe-run failed jobs。JSON鍵の再発行やSecret再登録は不要 |
 | deployがWaiting | production Environmentの承認・待機ルール |
 | validationが失敗 | checks / browserの失敗ステップを修正して再push |
 | Workflowが起動しない | masterへWorkflowをpushしたか、Actionsが有効か |
